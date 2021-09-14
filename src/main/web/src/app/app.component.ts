@@ -24,6 +24,8 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Stroke, Style, Fill, Text } from 'ol/style';
 import { ConstantPool } from '@angular/compiler';
 import Select from 'ol/interaction/Select';
+import MousePosition from 'ol/control/MousePosition';
+import { createStringXY } from 'ol/coordinate';
 
 @Component({
   selector: 'app-root',
@@ -38,7 +40,7 @@ export class AppComponent {
     const vectorSource = new VectorSource({
       format: new GeoJSON(),
       url: function (extent) {
-        let feat = 'http://200.124.240.62:8088/geoserver/wfs?srsname=EPSG%3A' + src + '&typeName=catastro:predios_tx&outputFormat=application/json'
+        let feat = 'http://200.124.240.62:8088/geoserver/wfs?srsname=EPSG%3A' + src + '&typeName=latacunga:parroquias&outputFormat=application/json'
           + '&version=1.1.0&service=WFS&request=GetFeature&bbox=' + extent.join(',') + ',EPSG%3A' + src;
         return feat;
       },
@@ -55,9 +57,33 @@ export class AppComponent {
     });
     var view = new View({
       projection: 'EPSG:' + src,
-      center: [-78.1376, 0.3616],
-      zoom: 8
+      //center: [-78.1376, 0.3616], // ibarra
+      center: [-78.6233246, -0.9339953],
+      zoom: 10
     })
+    const mousePositionControl = new MousePosition({
+      coordinateFormat: createStringXY(4),
+      projection: 'EPSG:4326',
+      // comment the following two lines to have the mouse position
+      // be placed within the map.
+      className: 'custom-mouse-position',
+      target: document.getElementById('mouse-position'),
+    });
+
+
+    // SELECT POLYGON
+    var selectClick = new Select({ layers: [vector] });
+    selectClick.on('select', function (e) {
+      console.log('select ' + e.selected[0]);
+      console.log(e.selected[0].getGeometry().getCoordinates());
+      var selectedFeatures = e.target.getLayers().getArray();
+      var featureStr = "none";
+      if (!!selectedFeatures && selectedFeatures.length > 0) {
+        featureStr = selectedFeatures[0].get('name');
+      }
+      document.getElementById('status').innerHTML = e.target.getFeatures();
+    });
+
     var map = new Map({
       layers: [
         new TileLayer({
@@ -77,43 +103,33 @@ export class AppComponent {
         new Attribution({
           collapsible: false
         }),
-        new ZoomToExtent({
-          extent: [
-            813079.7791264898,
-            5929220.284081122,
-            848966.9639063801,
-            5936863.986909639
-          ]
-        }),
         new FullScreen(),
-        new ScaleLine()
+        new ScaleLine(),
+        mousePositionControl
       ]),
-      interactions: defaultInteractions().extend([new DragRotateAndZoom()]),
+      interactions: defaultInteractions().extend([new DragRotateAndZoom(), selectClick]),
       target: "map",
-      view: view,
-      listeners: {
-        featureover: function(e) {
-            e.feature.renderIntent = "select";
-            e.feature.layer.drawFeature(e.feature);
-            log("Map says: Pointer entered " + e.feature.id + " on " + e.feature.layer.name);
-        },
-        featureout: function(e) {
-            e.feature.renderIntent = "default";
-            e.feature.layer.drawFeature(e.feature);
-            log("Map says: Pointer left " + e.feature.id + " on " + e.feature.layer.name);
-        },
-        featureclick: function(e) {
-            log("Map says: " + e.feature.id + " clicked on " + e.feature.layer.name);
-        }
-    }
+      view: view
     });
 
-   
+    map.on('click', function (evt) {
+      var selectedFeatures = evt.target.getLayers().getArray();
+      console.log(selectedFeatures);
+      var featureStr;
+      var feature = map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+        //you can add a condition on layer to restrict the listener
+        return feature;
+      });
+      if (feature) {
+        console.log(feature)
+      }
+      if (!!selectedFeatures && selectedFeatures.length > 0) {
+        featureStr = selectedFeatures[0].get('name');
+      }
+      console.log(featureStr);
+      displayFeatureInfo(evt.pixel);
+    });
 
-    function log(msg) {
-      console.log(msg);
-      //result.innerHTML += msg + "<br>";
-  }
     const zoomtolausanne = document.getElementById('zoomtolausanne');
     zoomtolausanne.addEventListener(
       'click',
@@ -121,7 +137,7 @@ export class AppComponent {
         const feature = vectorSource.getFeatures()[0];
         if (feature) {
           const point = feature.getGeometry;
-          //view.fit(point, { padding: [170, 50, 30, 150], minResolution: 50 });
+          view.fit(point, { padding: [170, 50, 30, 150], minResolution: 50 });
         }
       },
       false
@@ -129,7 +145,13 @@ export class AppComponent {
 
     let highlight;
     const displayFeatureInfo = function (pixel) {
-      vectorSource.getFeaturestures(pixel).then(function (features) {
+      console.log(pixel);
+      console.log(JSON.stringify(map.getCoordinateFromPixel(pixel)));
+      map.forEachFeatureAtPixel(pixel, function (feature, layer) {
+        console.log(feature);
+        console.log(layer);
+      }) /*
+      vectorSource.getFeatures(pixel).then(function (features) {
         const feature = features.length ? features[0] : undefined;
         const info = document.getElementById('info');
         if (features.length) {
@@ -147,7 +169,7 @@ export class AppComponent {
           }
           highlight = feature;
         }
-      });
+      });*/
     };
     const highlightStyle = new Style({
       stroke: new Stroke({
@@ -177,38 +199,22 @@ export class AppComponent {
         return highlightStyle;
       },
     });
-
-    /*map.on('click', function (evt) {
-      displayFeatureInfo(evt.pixel);
-    });*/
-
-    var selectClick = new Select();
-    map.addInteraction(selectClick);
-    selectClick.on('select', function(e) {
-      var selectedFeatures = e.target.getLayers().getArray();
-      console.log(e.selected[0].getGeometry().getCoordinates());
-      var featureStr = "none";
-      if (!!selectedFeatures && selectedFeatures.length > 0) {
-        featureStr = selectedFeatures[0].get('name');
-      }
-      document.getElementById('status').innerHTML = e.target.getFeatures();
-  })
-/*
-    map.on('click', function(e) {
-      map.forEachFeatureAtPixel(e.pixel, function (feature, layer) {
-        console.log(feature);
-        console.log(layer);
-    })
-      console.log(e.target);
-      console.log(e.map.getLayers());
-      var selectedFeatures = e.target.getLayers().getArray();
-      var featureStr = "none";
-      if (!!selectedFeatures && selectedFeatures.length > 0) {
-        featureStr = selectedFeatures[0].get('name');
-      }
-      console.log(featureStr);
-      document.getElementById('status').innerHTML = featureStr;
-    });*/
+    /*
+        map.on('click', function(e) {
+          map.forEachFeatureAtPixel(e.pixel, function (feature, layer) {
+            console.log(feature);
+            console.log(layer);
+        })
+          console.log(e.target);
+          console.log(e.map.getLayers());
+          var selectedFeatures = e.target.getLayers().getArray();
+          var featureStr = "none";
+          if (!!selectedFeatures && selectedFeatures.length > 0) {
+            featureStr = selectedFeatures[0].get('name');
+          }
+          console.log(featureStr);
+          document.getElementById('status').innerHTML = featureStr;
+        });*/
 
   }
 
