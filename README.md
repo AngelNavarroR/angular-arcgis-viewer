@@ -1,8 +1,11 @@
-# Angular ArcGIS Viewer
+# Spring Angular Viewer
 
-This project was generated for example development Angular with ArcGIS JavaScript API v4 
+This project was generated for example development Angular 
 
 ## Development website
+## In case the python 2 environment not found
+
+npm install --global windows-build-tools
 
 Steps:
 

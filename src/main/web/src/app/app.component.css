@@ -1,0 +1,43 @@
+#map {
+    width: 90%;
+    height: 90%;
+}
+
+.map:-moz-full-screen {
+    height: 100%;
+}
+
+.map:-webkit-full-screen {
+    height: 100%;
+}
+
+.map:-ms-fullscreen {
+    height: 100%;
+}
+
+.map:fullscreen {
+    height: 100%;
+}
+
+.esri-view {
+    height: 100%;
+    outline: none;
+}
+
+.clr-row {
+    margin-right: 0;
+    margin-left: 0;
+}
+
+.clr-col {
+    padding-left: 0.1rem;
+    padding-right: 0.1rem;
+    position: relative;
+}
+
+.clr-icon {
+    padding-top: 0.1rem;
+    padding-bottom: 0.1rem;
+    width: 24px;
+    height: 24px;
+}
